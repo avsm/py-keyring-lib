@@ -89,13 +89,41 @@ keychain_password_get(PyObject *self, PyObject *args)
                                               : strlen(username),
                                             username, &length, &data, NULL);
 
-    if (status == 0){
+    if (status == 0)
+    {
         password = string_dump(data, length);
         SecKeychainItemFreeContent(NULL, data);
-    }else if (status == errSecItemNotFound){
-        password = NULL;
     }
-    else{ // error occurs
+    else if (status == errSecItemNotFound)
+    {
+        status = SecKeychainFindInternetPassword(
+            keychain, 
+            strlen(realmstring), realmstring, // server name
+            0, NULL, // security domain
+            username == NULL ? 0 : strlen(username), username, // account name
+            0, NULL, // path 
+            0, // port - 0 means ignore
+            kSecProtocolTypeAny, kSecAuthenticationTypeAny, 
+            &length, &data, // OUT password
+            NULL);
+        if (status == 0)
+        {
+            password = string_dump(data, length);
+            SecKeychainItemFreeContent(NULL, data);
+        } 
+        else if (status == errSecItemNotFound)
+        {
+            password = NULL;
+        }
+        else // error occurs
+        {
+            PyErr_Clear();
+            PyErr_SetString(PyExc_OSError, "Can't fetch password from system");
+            return NULL;
+        }
+    }
+    else // error occurs
+    {
         PyErr_Clear();
         PyErr_SetString(PyExc_OSError, "Can't fetch password from system");
         return NULL;
