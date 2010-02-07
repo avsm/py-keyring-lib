@@ -6,8 +6,11 @@ setup.py
 Setup the Keyring Lib for Python.
 """
 
-import sys
-from distutils.core import setup, Extension
+import sys,os
+try:
+    from setuptools import setup, Extension
+except ImportError:
+    from distutils.core import setup, Extension
 
 from extensions import get_extensions
 
